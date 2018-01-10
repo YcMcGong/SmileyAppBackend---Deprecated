@@ -8,8 +8,8 @@ import boto.s3.connection
 
 
 my_region = 'us-west-2'
-my_aws_access_key_id = 'AKIAJXK47RKYEBNOGKEA'
-my_aws_secret_access_key = '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'
+my_aws_access_key_id = ''
+my_aws_secret_access_key = ''
 
 def connect_to_dynamodb():
     dynamodb = boto3.resource('dynamodb',region_name=my_region,aws_access_key_id=my_aws_access_key_id,aws_secret_access_key=my_aws_secret_access_key)
