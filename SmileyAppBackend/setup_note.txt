@@ -1,0 +1,6 @@
+
+# Make migrations
+python manage.py makemigrations
+
+# Migrates
+python manage.py migrate
