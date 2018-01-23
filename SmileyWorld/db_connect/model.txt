@@ -1,0 +1,50 @@
+This file defines the data communication structures between functions in different files.
+
+
+1. Time
+    Time = String('%Y-%m-%d %H:%M:%S') 
+  
+2. User_info structure   
+    User_info = {
+        'user_ID': String,
+        'discovered_list': [String],
+        'explore_list': [String],
+        'friends': [
+            {
+            'user_ID': String,
+            'creation_time': Time
+            }
+        ],   
+        'recently_visited': [String],
+        'name': String,
+    }
+
+
+3. Attraction_info structure
+    Attraction_info = {
+        'attraction_ID': String,
+        'sorting_key': int,    #specific for basic info
+        'review_list': int,    #number of review_lists
+        'explorer_ID': String,
+        'name': String,
+        'lat': float,
+        'lng': float,
+        'intro': String,
+        'rating': float,
+        'if_private': boolean,
+        'cover': String,
+        'marker': String,
+        'discoverer': [String],
+        'time': Time,
+    }
+
+4. Review structure
+    Review = {
+        'reviewer_ID': String,
+        'name': String,
+        'intro': String,
+        'rating': float,
+        'cover': String,
+        'marker': String,
+        'time': Time
+    }
