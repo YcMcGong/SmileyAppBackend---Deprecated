@@ -12,7 +12,173 @@ import json
 from boto3.dynamodb.conditions import Key, Attr
 import math
 
-class Connect_to_db:
+
+'''
+This file has only one class db_conncet. It is used to read and write data from dynamodb and s3 bucket.
+It has the following functions to be called from other files.
+    def __init__(self):
+        This function is used to initialize db_connect class. 
+        No return value.
+        It has to be called first before other functions can be called.
+    
+    # Connection related functions
+    def connect_to_dynamodb(self):
+        This function is used to connect to dynamodb.
+        Return value is the dynamodb class.
+        further functions under dynamodb class, plese refer to Amazon web service and boto3.
+        It has to be called before other functions can be called.
+    
+    def connect_to_s3_storage(self):
+        This function is used to connect to s3 bucket.
+        Return value is s3_bucket
+        It has to be called before other functions can be called
+
+
+    # s3 bucket file downloading, uploading and deleting
+    def upload_file_to_s3(self, file_name):
+        This function is used to upload a file to s3 bucket
+        file_name should be a string
+        No return value
+    
+    def download_file_from_s3(self, file_name):
+       This function is used to get the url to download a file stored in s3. 
+       The URL expires 1 hour after request
+       file_name should be a string
+       Return value is a string representing the url to download the file
+
+    def delete_file_from_s3(self, file_name):
+        This function is used to delete a file in s3
+        file_name should be a string
+        No return value
+
+   
+
+
+
+    # user related functions
+    # get user information, creating and deleting user, user login
+    def create_user(self, email, password, name):
+        This function is used to create a new user and write its information into database
+        email should be a string
+        password should be a string
+        name should be a string
+        Return value is User_info structure
+
+    def delete_user(self, email):
+        This function is used to delete a user. It also deletes the information
+        email should be a string
+        No return value
+
+    def get_user(self, user_ID):
+        This function is used to get user information with ID
+        user_ID should be a string
+        Return value is User_info structure
+    
+    def login(self, email, password):
+        This function is used to login user
+        email should be a string
+        password should be a string
+        Return value is a string representing user_ID if successfully loged in
+        Return value is int 0 if email is not found
+        Return value is int 1 if email is found but wrong password
+    
+    def get_user_ID(self, email):
+        This function is used to get user_ID with email
+        email should be a string
+        def get_user_ID(self, email):
+    
+     def show_friend_list(self, user_ID):
+        This function is used to show all friends of user
+        user_ID should be a string
+        Return value [String], a list of string
+
+
+    # friendship related functions
+    # add friendship and delete friendship
+    def add_friend(self, from_user_ID, to_user_ID):
+        This function is used to create a friendship between from_user_ID and to_user_ID
+        from_user_ID should be a string
+        to_user_ID should be a string
+        No return value
+
+    def delete_friend(self, from_user_ID, to_user_ID):
+        This function is used to delete a friendship between from_user_ID and to_user_ID
+        from_user_ID should be a string
+        to_user_ID should be a string
+        No return value
+
+    
+    # attraction related functions
+    # create, delete and show information of attractions
+    def create_attraction(self, user_ID, name, lat, lng, intro, rating, if_private, cover, marker):
+        This function is used to create an attraction and write its info into dynamodb and store the file in s3 bucket
+        user_ID should be a string
+        name should be a string
+        lat should be float
+        lng should be float
+        intro should be string
+        rating should be float
+        if_private should be boolean
+        cover should be string
+        marker should be string
+        Return value is String attraction_ID
+    
+    def get_attraction(self, attraction_ID):
+        This function is used to get an attraction_info with attraction_ID
+        attraction_ID should be a string
+        Return value is Attraction_info structure
+
+    def delete_attraction(self, attraction_ID):
+        This function is used to delete an attraction from both dynamodb and s3 bucket
+        attraction_ID should be a string
+        No return value
+    
+    def get_nearby_attraction_ID(self, lat, lng, boundary):
+        This function is used to get a list of attractions which is no further than boundary distance to (lat,lng)
+        lat should be a float
+        lng should be a float
+        boundary should be a float
+        Return value is [String], a list of attraction IDs
+    
+    def get_all_friend_visited_attraction_IDs(self, user_ID):
+        This function is used to get all friend visited attractions
+        user_ID should be a string
+        Return value is [String]
+    
+    # Review related functions
+    def create_review(self, user_ID, name, intro, rating, cover, marker, attraction_ID):
+        This function is used to create a review under an attraction
+        user_ID should be a string
+        name should be a string
+        intro should be a string
+        rating should be a float
+        cover should be a string
+        marker should be a string
+        attraction_ID should be a string
+        No return value
+
+    def delete_one_reviews(self, attraction_ID, user_ID, time_stamp):
+        This function is used to delete an attraction
+        attraction_ID should be a string
+        user_ID should be a string
+        time_stamp should be Time format'
+        No return value
+    
+    def delete_all_reviews(self, attraction_ID, user_ID):
+        This function is used to delete all reviews created by a user
+        attraction_ID should be a string
+        user_ID should be a string
+        No return value
+    
+    def get_all_reviews(self, attraction_ID):
+        This function is used to get all reviews under an attraction
+        attraction_ID should be a string
+        Return value is [Review structure]
+'''
+
+
+
+class db_connect
     def __init__(self):
         self.my_region = MY_REGION
         self.my_aws_access_key_id = MY_AWS_ACCESS_KEY_ID
@@ -181,6 +347,11 @@ class Connect_to_db:
         )
         return user_response['Item']
 
+# Show all friends' ID of a user
+    def show_friend_list(self, user_ID):
+        user = get_user(user_ID)
+        return user['friends']
+
 
 ###friend
 # Add a new friendship  rewrite using update function in the future
@@ -299,22 +470,7 @@ class Connect_to_db:
         self.upload_file_to_s3(cover)
         self.upload_file_to_s3(maker)
         return attraction_ID
-
-# Get nearby attraction_ID with latitude and longitude
-    def get_attraction_ID_list(self, lat, lng, boundary):
-        partition_key = compute_partition_key(lat = lat, lng = lng)
-        attraction_location_table = self.dynamodb.Table('Attraction_locations')  
-        response = attraction_location_table.query(
-            KeyConditionExpression = Key('partition_key').eq(partition_key)
-        )
-        items = response['Items']
-        attraction_ID_list = []
-        for item in items:
-            distance = math.sqrt((item['lat'] - lat) * (item['lat'] - lat) + (item['lng'] - lng) * (item['lng'] - lng))
-            if distance < boundary:
-                attraction_ID_list.append(item['attraction_ID'])
-        return attraction_ID_list
-        
+       
 # Delete an attraction
     def delete_attraction(self, attraction_ID):
         attraction_table = self.dynamodb.Table('Attractions')
@@ -577,7 +733,7 @@ class Connect_to_db:
         return ans_ID_list 
 
 # Get all nearby attraction_IDs
-    def get_nearby_attraction_ID(self, lat, lng):
+    def get_nearby_attraction_ID(self, lat, lng, boundary):
         attraction_location_table = self.dynamodb.Table('Attraction_locations')
         partition_key_list = generate_partition_key_list(lat = lat, lng = lng)
         ans_ID_list = []
@@ -585,8 +741,10 @@ class Connect_to_db:
             attraction_location_response = attraction_location_table.query(
                 KeyConditionExpression = Key('partition_key').eq(partition_key)
             )
-            if not 'Item' in attraction_location_response.keys():
+            if 'Item' in attraction_location_response.keys():
                 for item in attraction_location_response['Item']:
-                    ans_ID_list.append(item['attraction_ID'])
+                    distance = math.sqrt((item['lat'] - lat) * (item['lat'] - lat) + (item['lng'] - lng) * (item['lng'] - lng))
+                    if distance < boundary:
+                        ans_ID_list.append(item['attraction_ID'])
         return ans_ID_list
     
