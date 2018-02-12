@@ -68,9 +68,41 @@ class User(AbstractBaseUser, PermissionsMixin):
     AbstractBaseUser requires get_full_name and get_short_name
     to be implemented by the subclass
     """
-    def get_full_name(self):
+
+    def get_user_id(self):
+        return self.user_id
+
+    def get_username(self):
+        return self.username
+
+    def get_experience(self):
+        return self.experience
+
+    def get_exp_id(self):
+        return self.exp_id
+
+    def get_email(self):
         return self.email
 
-    def get_short_name(self):
-        return self.get_full_name()
+    # Edition of user data
+
+    def edit_user_id(self, user_id):
+        self.user_id = user_id
+        self.save()
+
+    def edit_username(self, username):
+        self.username = username
+        self.save()
+
+    def edit_experience(self, experience):
+        self.experience = experience
+        self.save()
+
+    def edit_exp_id(self, exp_id):
+        self.exp_id = exp_id
+        self.save()
+
+    def edit_email(self, email):
+        self.email = email
+        self.save()
 

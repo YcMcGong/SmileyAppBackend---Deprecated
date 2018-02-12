@@ -2,20 +2,24 @@ import json
 import os
 from django.http import JsonResponse
 from SmileyWorld.config import *
-from SmileyWorld.models import User
-from django.contrib.auth import authenticate, login
 from django.contrib.auth.decorators import login_required
 
-db = connect_to_dynamodb()
-storage = connect_to_s3()
+# import service locator
+from services.services_locator import service_locator
 
-bucket = storage.get_bucket('smileyphototest')
-test_key = bucket.get_key('thumbnail_IMG_3956.jpg')
-test_url = test_key.generate_url(0, query_auth=False, force_http=True)
-plans_key = bucket.get_key('thumbnail_IMG_3956.jpg')
-plans_url = plans_key.generate_url(3600, query_auth=True, force_http=True)
+# import utility
+from utility import current_user
 
-
+"""
+#  ________________________________________
+# |Loading services                        |
+# |________________________________________|
+"""
+service_locator = service_locator()
+login_service = service_locator.provide('login')
+attraction_service = service_locator.provide('attraction')
+login_service.test()
+attraction_service.test()
 
 """
 #  ________________________________________
@@ -25,18 +29,16 @@ plans_url = plans_key.generate_url(3600, query_auth=True, force_http=True)
 
 def index(request):
     
-    user = authenticate(request, user_id='john3', password='password')
-
-    if user==None:
-        user = User.objects.create_user(user_id='john3', password = 'password')
-
-    user.experience = 90
-    user.save()
-
-    login(request, user)
-    
-    return JsonResponse({'one':plans_url, 'two':test_url})
+    current_user.login_user(request, '1234')
+    return JsonResponse({'one':'plans_url', 'two':'test'})
 
 @login_required
 def test(request):
-    return JsonResponse({'one':1, 'two':request.user.experience})
+    request.user.edit_username('xxjo')
+    return JsonResponse({'one':1, 'two':request.user.get_username()})
+
+@login_required
+def test2(request):
+    # return JsonResponse({'one':1, 'two':current_user.get_user_id(request)})
+    data = login_service.test_db_connection()
+    return JsonResponse(data)
