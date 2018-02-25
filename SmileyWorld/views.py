@@ -4,6 +4,9 @@ from django.http import JsonResponse
 from SmileyWorld.config import *
 from django.contrib.auth.decorators import login_required
 
+# import Applications
+from Map.Map import Map
+
 # import service locator
 from services.services_locator import service_locator
 
@@ -18,8 +21,17 @@ from utility import current_user
 service_locator = service_locator()
 login_service = service_locator.provide('login')
 attraction_service = service_locator.provide('attraction')
+relation_service = service_locator.provide('relation')
 login_service.test()
 attraction_service.test()
+
+"""
+#  ________________________________________
+# |Loading Application                     |
+# |________________________________________|
+"""
+Map_App = Map(attraction_service, relation_service)
+Map_App.test()
 
 """
 #  ________________________________________
@@ -27,7 +39,7 @@ attraction_service.test()
 # |________________________________________|
 """
 
-def index(request):
+def welcome(request):
     
     current_user.login_user(request, '1234')
     return JsonResponse({'one':'plans_url', 'two':'test'})
