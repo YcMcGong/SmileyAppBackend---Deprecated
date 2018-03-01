@@ -9,3 +9,9 @@ class Map():
     def test(self):
         self.attraction_service.test()
         self.relation_service.test()
+
+    def get_map_attractions(self, user_id, rule):
+        pass
+
+    def gps_to_place_list(self, lat, lng):
+        pass

@@ -21,3 +21,6 @@ class service():
 
     def create_user(self, email, password, name):
         pass
+
+    def get_profile(self, usr_id):
+        pass
