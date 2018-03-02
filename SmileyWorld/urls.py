@@ -14,7 +14,7 @@ urlpatterns = [
     path('/profile', views.get_profile, name='get_profile'),
 
     # Friendlist
-    path('/friendlist', views.friendlist, name='friendlist'),
+    path('/friendlist', views.get_friendlist, name='friendlist'),
 
     # Map
     path('/map', views.get_map, name='get_map'),
