@@ -20,3 +20,6 @@ def login_user(request, user_id):
         user = User.objects.create_user(user_id=user_id, password = 'password')
 
     login(request, user)
+
+def logout_user(request):
+    pass
