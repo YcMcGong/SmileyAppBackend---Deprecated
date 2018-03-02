@@ -180,7 +180,7 @@ def create_a_new_place_post(request):
         intro = request.form.get('intro')
         rating = request.form.get('rating')
         cover_file = request.files.get('cover')
-        marker_file = request.files.get('marker'))
+        marker_file = request.files.get('marker')
 
         # Calculate the score based on the user experience and the rating
         score = (float(rating) + 10)
@@ -192,7 +192,7 @@ def create_a_new_place_post(request):
             user_id
         )
 
-        return jsonify({'status': 'success'}), 201
+        return JsonResponse({'status': 'success'}), 201
 
     else:
         return '', 404

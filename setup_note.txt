@@ -14,3 +14,6 @@ sudo chown www-data:www-data /var/www/SmileyAppBackend/db.sqlite3
 
 # Create table and sync
 sudo python3 manage.py migrate --run-syncd
+
+# Run Test Server
+sudo python manage.py runserver
