@@ -33,6 +33,29 @@ def connect_to_dynamodb():
     return dynamodb
 dynamodb = connect_to_dynamodb()
 
+def connect_to_s3_storage():
+    s3 = boto.s3.connect_to_region(
+        my_region,
+        aws_access_key_id = my_aws_access_key_id,
+        aws_secret_access_key = my_aws_secret_access_key,
+        # host = 's3-website-us-east-1.amazonaws.com',
+        # is_secure=True,               # uncomment if you are not using ssl
+        calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+    )
+    return s3
+s3 = connect_to_s3_storage()
+
+def upload_file_to_s3(self, file):
+    bucket = s3.get_bucket('smileyphototest')
+    key = generate_unique_ID()
+    s3.upload_fileobj(file, bucket, key)
+    return key
+
+def delete_file_from_s3(self, key):
+    bucket = s3.get_bucket('smileyphototest')
+    bucket.delete_key(key)
+
+
 
 app = Flask(__name__)
 
@@ -225,8 +248,32 @@ def delete_friend():
         )
         return jsonify({'one':1, 'two':2})
 
-        
-'''
+
+@app.route('/get_attraction', methods = ['GET', 'POST'])
+def post_attraction():
+    if request.method == 'GET':
+        attraction_ID = request.args.get('attraction_ID')
+        attraction_table = dynamodb.Table('Attractions')
+        user_response = user_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            }
+        )
+        return jsonify(user_response['Item'])
+
+@app.route('/get_attraction', methods = ['GET', 'POST'])
+def get_attraction():
+    if request.method == 'GET':
+        attraction_ID = request.args.get('attraction_ID')
+        attraction_table = dynamodb.Table('Attractions')
+        response = attraction_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID,
+                'sorting_key': 0
+            }
+        )
+        return jsonify(response['Item'])
+
 @app.route('/post_attraction', methods = ['GET', 'POST'])
 def post_attraction():
     if request.method == 'POST':
@@ -239,8 +286,57 @@ def post_attraction():
         rating = request.form.get('rating')
         cover_file = request.files.get('cover')
         marker_file = request.files.get('marker')
-'''
-
+        if_custom = request.files.get('if_costum')
+        attraction_ID = generate_unique_ID()
+        cover = upload_file_to_s3(cover_file)
+        marker = upload_file_to_s3(marker_file)
+        attraction_table = dynamodb.Table('Attractions')
+        attraction_table.put_item(
+            Item = {
+                'attraction_ID': attraction_ID,
+                'sorting_key': 0,    #specific for basic info
+                'review_list': 1,    #number of review_lists
+                'explorer_ID': explorer_ID,
+                'name': name,
+                'lat': lat,
+                'lng': lng,
+                'intro': intro,
+                'rating': rating,
+                'if_custom': if_custom,
+                'cover': cover,
+                'marker': marker,
+                'discoverer': [explorer_ID],
+                'time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+            }
+        )
+        review_table = dynamodb.Table('Reviews')
+        review_table.put_item(
+            Item = {
+                'attraction_ID': attraction_ID,
+                'sorting_key':  1,
+                'review_count': 1,
+                'review_list': [
+                    {
+                        'reviewer_ID': explorer_ID,
+                        'name': name,
+                        'intro': intro,
+                        'rating': rating,
+                        'cover': cover,
+                        'marker': marker,
+                        'time': strftime('%Y-%m-%d %H:%M:%S', gmtime())
+                    }
+                ],
+            }
+        )
+        attraction_location_table = dynamodb.Table('Attraction_locations')
+        attraction_location_table.put_item(
+            Item = {
+                'partition_key': compute_partition_key(lat = lat, lng = lng),
+                'lat': lat,
+                'lng': lng,
+                'attraction_ID': attraction_ID
+            }
+        )
 
 if __name__ == '__main__':
     # app.debug = True
