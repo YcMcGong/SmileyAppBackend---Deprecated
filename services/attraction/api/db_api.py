@@ -25,6 +25,8 @@ class attraction_post():
         self.marker_file = marker_file
         self.user_id = user_id
         self.if_custom = if_custom
+        # shows the status of this request object
+        self.status = 'not post yet'
 
     def post(self):
         
@@ -43,7 +45,7 @@ class attraction_post():
         files = {'cover': self.cover_file, 'marker': self.marker_file}
 
         response = requests.post(url, files = files, data = data)
-
+        self.status = 'sent'
         return response
 
 # Get attraction by ID, or, coordinate, or address
@@ -54,6 +56,11 @@ class attraction_get():
         self.lat = lat
         self.lng = lng
         self.address = address
+        # Other info
+        self.marker_url = None
+        self.intro = None
+        self.explorer = None
+        self.discover = None
 
     def get(self):
         
@@ -74,11 +81,26 @@ class attraction_get():
 
         # No input
         else:
-            return None
+            return False
 
         data = requests.get(url, params = params) # send http request
+        if data:
+            self.__assign_data(data)
+            return True
+        else:
+            return False
 
-        return data
+    def __assign_data(self, data):
+        
+        self.ID = data['ID']
+        self.lat = data['lat']
+        self.lng = data['lng']
+        self.address = data['address']
+        # Other info
+        self.marker_url = data['maker']
+        self.intro = data['intro']
+        self.explorer = data['explorer']
+        self.discover = data['discover']
 
 
 """

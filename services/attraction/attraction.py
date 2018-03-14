@@ -38,12 +38,12 @@ class service():
                 cover_file, marker_file, user_id, is_custom)
             attraction_id = attraction.post()
 
-            # Post review
-            if attraction_id:
-                review = db_api.review_post(intro, rating, cover_file, user_id, attraction_id)
-                return True
-            else:
-                return False
+            # # Post review
+            # if attraction_id:
+            #     review = db_api.review_post(intro, rating, cover_file, user_id, attraction_id)
+            #     return True
+            # else:
+            #     return False
 
 #  ________________________________________
 # |Attraction List Retrieval               |

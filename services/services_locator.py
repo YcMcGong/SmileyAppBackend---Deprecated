@@ -6,7 +6,8 @@ class service_locator():
         self.list = [
             'login',
             'attraction',
-            'relation'
+            'relation',
+            'skeleton'
         ]
 
     def provide(self, service_name):
@@ -25,6 +26,11 @@ class service_locator():
             from services.relation import relation
             relation = relation.service()
             return relation
+
+        elif service_name == 'skeleton':
+            from services.skeleton import skeleton
+            skeleton = skeleton.service()
+            return skeleton
 
         else:
             print('Not a valid service name')
