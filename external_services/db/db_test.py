@@ -6,18 +6,15 @@ from flask import Flask, render_template, request, redirect, url_for, flash, cur
 
 # delete unused library later
 import os
-import boto
 import boto3
-from boto import dynamodb2
-from boto.dynamodb2.table import Table
-import boto.s3.connection
-from boto.s3.connection import S3Connection, Bucket, Key
 from time import gmtime, strftime
 import config
 from config import *
 import json
 from boto3.dynamodb.conditions import Key, Attr
 import math
+import utility
+from utility import *
 
 my_region = MY_REGION
 my_aws_access_key_id = MY_AWS_ACCESS_KEY_ID
@@ -34,25 +31,24 @@ def connect_to_dynamodb():
 dynamodb = connect_to_dynamodb()
 
 def connect_to_s3_storage():
-    s3 = boto.s3.connect_to_region(
-        my_region,
+    s3 = boto3.resource(
+        's3',
+        region_name = my_region,
         aws_access_key_id = my_aws_access_key_id,
-        aws_secret_access_key = my_aws_secret_access_key,
-        # host = 's3-website-us-east-1.amazonaws.com',
-        # is_secure=True,               # uncomment if you are not using ssl
-        calling_format = boto.s3.connection.OrdinaryCallingFormat(),
+        aws_secret_access_key = my_aws_secret_access_key
     )
     return s3
 s3 = connect_to_s3_storage()
 
-def upload_file_to_s3(self, file):
-    bucket = s3.get_bucket('smileyphototest')
+def upload_file_to_s3(file):
+    bucket = s3.Bucket('thesmileyappstorage')
     key = generate_unique_ID()
-    s3.upload_fileobj(file, bucket, key)
+    obj = bucket.Object(key)
+    obj.upload_fileobj(file)
     return key
 
 def delete_file_from_s3(self, key):
-    bucket = s3.get_bucket('smileyphototest')
+    bucket = s3.Bucket('thesmileyappstorage')
     bucket.delete_key(key)
 
 
@@ -250,26 +246,13 @@ def delete_friend():
 
 
 @app.route('/get_attraction', methods = ['GET', 'POST'])
-def post_attraction():
-    if request.method == 'GET':
-        attraction_ID = request.args.get('attraction_ID')
-        attraction_table = dynamodb.Table('Attractions')
-        user_response = user_table.get_item(
-            Key = {
-                'attraction_ID': attraction_ID
-            }
-        )
-        return jsonify(user_response['Item'])
-
-@app.route('/get_attraction', methods = ['GET', 'POST'])
 def get_attraction():
     if request.method == 'GET':
         attraction_ID = request.args.get('attraction_ID')
         attraction_table = dynamodb.Table('Attractions')
         response = attraction_table.get_item(
             Key = {
-                'attraction_ID': attraction_ID,
-                'sorting_key': 0
+                'attraction_ID': attraction_ID
             }
         )
         return jsonify(response['Item'])
@@ -294,8 +277,7 @@ def post_attraction():
         attraction_table.put_item(
             Item = {
                 'attraction_ID': attraction_ID,
-                'sorting_key': 0,    #specific for basic info
-                'review_list': 1,    #number of review_lists
+                'review_number': "1",    #number of reviews
                 'explorer_ID': explorer_ID,
                 'name': name,
                 'lat': lat,
@@ -306,26 +288,21 @@ def post_attraction():
                 'cover': cover,
                 'marker': marker,
                 'discoverer': [explorer_ID],
-                'time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                'creation_time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                'update_time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
             }
         )
         review_table = dynamodb.Table('Reviews')
         review_table.put_item(
             Item = {
                 'attraction_ID': attraction_ID,
-                'sorting_key':  1,
-                'review_count': 1,
-                'review_list': [
-                    {
-                        'reviewer_ID': explorer_ID,
-                        'name': name,
-                        'intro': intro,
-                        'rating': rating,
-                        'cover': cover,
-                        'marker': marker,
-                        'time': strftime('%Y-%m-%d %H:%M:%S', gmtime())
-                    }
-                ],
+                'review_ID': "0",
+                
+                'reviewer_ID': explorer_ID,
+                'intro': intro,
+                'rating': rating,
+                'cover': cover,    
+                'creation_time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
             }
         )
         attraction_location_table = dynamodb.Table('Attraction_locations')
@@ -337,7 +314,60 @@ def post_attraction():
                 'attraction_ID': attraction_ID
             }
         )
+        return attraction_ID
+
+
+@app.route('/post_review', methods = ['GET', 'POST'])
+def post_review():
+    if request.method == 'POST':
+        attraction_ID = request.form.get('attraction_ID')
+        intro = request.form.get('intro')
+        rating = request.form.get('rating')
+        cover_file = request.files.get('cover')
+        user_ID = request.form.get('user_ID')
+        cover = upload_file_to_s3(cover_file)
+        attraction_table = dynamodb.Table('Attractions')
+        response = attraction_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            }
+        )
+        attraction = response['Item']
+        review_number = int(attraction['review_number']) 
+        review_table = dynamodb.Table('Reviews')
+        review_table.put_item(
+            Item = {
+                'attraction_ID': attraction_ID,
+                'review_ID': str(review_number),
+                'reviewer_ID': user_ID,
+                'intro': intro,
+                'rating': rating,
+                'cover': cover,
+                'creation_time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+            }
+        )
+        response = attraction_table.update_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            },
+            UpdateExpression = "set review_number = :n, update_time = :t",
+            ExpressionAttributeValues = {
+                ':n': str(review_number + 1),
+                ':t': strftime('%Y-%m-%d %H:%M:%S', gmtime())
+            },
+            
+            ReturnValues = "UPDATED_NEW"
+        )
+        return 'success post review'
+        
+
 
 if __name__ == '__main__':
     # app.debug = True
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
+    print(strftime('%Y-%m-%d %H:%M:%S', gmtime()))
     app.run(host = '0.0.0.0', port = 5000)
