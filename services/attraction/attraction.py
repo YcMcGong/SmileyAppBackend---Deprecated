@@ -10,7 +10,19 @@ class service():
     def __init__(self):
         pass
 
-    def test(self):
+    def test(self, cover = None):
+        
+        # moment post testing
+        self.post_moment('name', 300, 300, 
+            'intro', 10, cover, '001', is_custom = False)
+
+        # attraction list get test
+        print(self.attraction_list_get(['001','002','003']))
+
+        # look up attraction detail test
+        print(self.look_up_attraction_detail('001'))
+
+        # assert here
         print('request attraction service succeed')
 
     def test_db_connection(self):

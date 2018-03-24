@@ -7,6 +7,7 @@ class service_locator():
             'login',
             'attraction',
             'relation',
+            'location',
             'skeleton'
         ]
 
@@ -26,6 +27,11 @@ class service_locator():
             from services.relation import relation
             relation = relation.service()
             return relation
+
+        elif service_name == 'location':
+            from services.location import location
+            location = location.service()
+            return location
 
         elif service_name == 'skeleton':
             from services.skeleton import skeleton
