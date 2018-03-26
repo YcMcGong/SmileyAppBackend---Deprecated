@@ -16,6 +16,12 @@ import math
 import utility
 from utility import *
 
+
+
+
+
+
+
 my_region = MY_REGION
 my_aws_access_key_id = MY_AWS_ACCESS_KEY_ID
 my_aws_secret_access_key = MY_AWS_SECRET_ACCESS_KEY
@@ -63,6 +69,31 @@ app = Flask(__name__)
 def test():
     return jsonify({'one':1, 'two':2})
 
+@app.route('/user_autheticate', methods = ['GET', 'POST'])
+def user_autheticate():
+    if request.method == 'GET':
+        email = request.args.get('email')
+        password = request.args.get('password')
+        email_table = dynamodb.Table(Emails)
+        email_response = email_table.get_item(
+            Key = {
+                'email': email
+            }
+        )
+        if not 'Item' in email_response.keys():
+           return 'email not found'
+        user_ID = email_response['Item']['user_ID']
+        login_table = dynamodb.Table('Users')
+        login_response = login_table.get_item(
+            Key = {
+                'user_ID': user_ID
+            }
+        )
+        item = login_response['Item']
+        if password != item['password']:
+            return 'wrong password'
+        return item['user_ID']
+
 @app.route('/get_user', methods = ['GET', 'POST'])
 def get_user():
     if request.method == 'GET':
@@ -75,6 +106,7 @@ def get_user():
         )
         return jsonify(user_response['Item'])
     return jsonify({'error':1})
+
 
 @app.route('/get_user_ID', methods = ['GET', 'POST'])
 def get_user_ID():
@@ -100,6 +132,7 @@ def create_user():
         email = request.form.get('email')
         password = request.form.get('password')
         name = request.form.get('name')
+        exp_ID = request.form.get('exp_ID')
         user_ID = generate_unique_ID()
         email_table = dynamodb.Table('Emails')
         email_table.put_item(
@@ -129,6 +162,7 @@ def create_user():
             ],   
             'recently_visited': [],
             'name': name,
+            'exp_ID': exp_ID,
         }
         user_table.put_item(
             Item = item
@@ -245,8 +279,8 @@ def delete_friend():
         return jsonify({'one':1, 'two':2})
 
 
-@app.route('/get_attraction', methods = ['GET', 'POST'])
-def get_attraction():
+@app.route('/get_attraction_by_ID', methods = ['GET', 'POST'])
+def get_attraction_by_ID():
     if request.method == 'GET':
         attraction_ID = request.args.get('attraction_ID')
         attraction_table = dynamodb.Table('Attractions')
@@ -256,6 +290,93 @@ def get_attraction():
             }
         )
         return jsonify(response['Item'])
+
+@app.route('/get_multiple_attraction_list', methods = ['GET', 'POST'])
+def get_multiple_attraction_list():
+    if request.method == 'GET':
+        user_list_string = request.args.get('user_list')
+        print(user_list_string)
+        user_list = json.loads(user_list_string)
+        print(user_list)
+        ans = []
+        user_table = dynamodb.Table('smiley_user')
+        for user_ID in user_list:
+            print(user_ID)
+            user_response = user_table.get_item(
+                Key = {
+                    'user_ID': user_ID
+                }
+            )
+            
+            ans = ans + user_response['Item']['discovered_list'] + user_response['Item']['explore_list']
+        print(ans)
+        return jsonify(ans)
+
+@app.route('/get_attraction_by_coordinate', methods = ['GET', 'POST'])
+def get_attraction_by_address():
+    if request.method == 'GET':
+        lat = request.args.get('lat')
+        lng = request.args.get('lng')
+        attraction_location_table = dynamodb.Table('Attraction_locations')
+        partition_key = compute_partition_key(lat = lat, lng = lng)
+        response = attraction_location_table.get_item(
+            Key = {
+                'partition_key': partition_key
+            }
+        )
+        if not 'Item' in response.keys():
+            return 'address not found'
+        attraction_ID = response['Item']['attraction_ID']
+        attraction_table = dynamodb.Table('Attractions')
+        response = attraction_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            }
+        )
+        return jsonify(response['Item'])
+
+
+@app.route('/get_nearby_attractions_by_coordinate', methods = ['GET', 'POST'])  # this method returns a list of attractions
+def get_nearby_attractions_by_coordinate():
+    if request.method == 'GET':
+        lat = request.args.get('lat')
+        lng = request.args.get('lng')
+        attraction_location_table = dynamodb.Table('Attraction_locations')
+        partition_key_list = generate_partition_key_list(lat = lat, lng = lng)
+        ans_ID_list = []
+        for partition_key in partition_key_list:
+            attraction_location_response = attraction_location_table.query(
+                KeyConditionExpression = Key('partition_key').eq(partition_key)
+            )
+            if 'Item' in attraction_location_response.keys():
+                for item in attraction_location_response['Item']:
+                    distance = math.sqrt((item['lat'] - lat) * (item['lat'] - lat) + (item['lng'] - lng) * (item['lng'] - lng))
+                    if distance < boundary:
+                        ans_ID_list.append(item['attraction_ID'])
+        return ans_ID_list
+'''
+@app.route('/get_attraction_by_address', methods = ['GET', 'POST'])
+def get_attraction_by_address():
+    if request.method == 'GET':
+        address = request.args.get('address')
+        address_table = dynamodb.Table('Adresses')
+        response = address_table.get_item(
+            Key = {
+                'address': address
+            }
+        )
+        if not 'Item' in response.keys():
+            return 'address not found'
+        attraction_ID = response['Item']['attraction_ID']
+        attraction_table = dynamodb.Table('Attractions')
+        response = attraction_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            }
+        )
+        return jsonify(response['Item'])
+'''
+
 
 @app.route('/post_attraction', methods = ['GET', 'POST'])
 def post_attraction():
@@ -297,12 +418,19 @@ def post_attraction():
             Item = {
                 'attraction_ID': attraction_ID,
                 'review_ID': "0",
-                
                 'reviewer_ID': explorer_ID,
                 'intro': intro,
                 'rating': rating,
                 'cover': cover,    
                 'creation_time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+            }
+        )
+        address = gps_to_address(lat = lat, lng = lng) 
+        address_table = dynamodb.Table('Addresses')
+        address_table.put_item(
+            Item = {
+                'address': address,
+                'attraction_ID': attraction_ID
             }
         )
         attraction_location_table = dynamodb.Table('Attraction_locations')
@@ -359,7 +487,37 @@ def post_review():
             ReturnValues = "UPDATED_NEW"
         )
         return 'success post review'
+
+
+@app.route('/get_review_by_attraction_ID', methods = ['GET', 'POST'])
+def get_review_by_attraction_ID():
+    if request.method == 'GET':
+        attraction_ID = request.args.get('attraction_ID')
+        attraction_table = dynamodb.Table('Attractions')
+        attraction_response = attraction_table.get_item(
+            Key = {
+                'attraction_ID': attraction_ID
+            }
+        )
+        attraction = attraction_response['Item']
+        review_number = int(attraction['review_number'])
+        review_table = dynamodb.Table('Reviews')
+        ans = []
+        for i in range(review_number):
+            review_response = review_table.get_item(
+                Key = {
+                    'attraction_ID': attraction_ID,
+                    'review_ID': str(i)
+                }
+            )
+            if 'Item' in review_response.keys():
+                print(review_response['Item'])
+                ans.append(review_response['Item'])
+        print(ans)
+        return jsonify(attraction, ans)
         
+
+
 
 
 if __name__ == '__main__':
