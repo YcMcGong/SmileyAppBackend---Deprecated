@@ -23,6 +23,7 @@ service_locator = service_locator()
 login_service = service_locator.provide('login')
 attraction_service = service_locator.provide('attraction')
 relation_service = service_locator.provide('relation')
+location_service = service_locator.provide('location')
 login_service.test()
 attraction_service.test()
 
@@ -61,6 +62,14 @@ def test2(request):
 # |User & Login Related Sessions           |
 # |________________________________________|
 """
+# PreLogin check if session expired
+def pre_user_login(request):
+    if request.method == 'GET':
+        if request.user.is_authenticated:
+            return JsonResponse({'status': 'success'}), 201
+        else:
+            return "", 400
+
 # Login function
 def user_login(request):
     if request.method == 'POST':
@@ -68,10 +77,12 @@ def user_login(request):
         email = request.form.get('email')
         password = request.form.get('password')
 
-        user_id = login_service.login(email)
+        response = login_service.login(email, password)
+        status = response['status']
 
-        if user_id:
+        if status:
             # Associate the request with the user_id on local session DB
+            user_id = response['user_ID']
             current_user.login_user(request, user_id)
             return JsonResponse({'status': 'success'}), 201
         
@@ -92,14 +103,22 @@ def create_user(request):
         email = request.form.get('email')
         password = request.form.get('password')
         name = request.form.get('name')
+        exp_ID = request.form.get('exp_ID')
+        experience = 0
 
         # Check if all fields valid
         if email and password and name:
-            status = login_service.create_user(email, password, name)
-
+            response = login_service.create_user(name, email, experience, exp_ID, password)
+            status = response['status']
             if status:
                 # Automatically log in the use after sign up
                 current_user.login_user(request, email)
+                return JsonResponse({'status': 'success'}), 201
+            else:
+                return JsonResponse({'status': 'DB failed'}), 400
+        else:
+            return JsonResponse({'status': 'fields not valid'}), 400
+                
 
 """
 #  ________________________________________
@@ -113,7 +132,17 @@ def get_profile(request):
         # Read data
         email = request.form.get('email')
         data = login_service.get_profile(current_user.get_user_id(request))
-        return JsonResponse({'ID':data['exp_id'], 'experience': data['experience'], 'name': data['name'], 'email': data['email']})
+
+        if data['status']:
+            return JsonResponse({
+                'user_ID':data['exp_ID'], 
+                'experience': data['experience'], 
+                'name': data['name'], 
+                'email': data['email']
+                })
+
+        else:
+            return "", 400
     else:
         return "", 400
 
@@ -127,23 +156,35 @@ def get_friendlist(request):
     # Get friend list
     if request.method == 'GET':
        
-        friendlist = relation_service.show_all_friends(current_user.get_user_id(request))
-        return JsonResponse(friendlist)
+        data = relation_service.show_all_friends(current_user.get_user_id(request))
+        status = data['status']
+        if status:
+            friendlist = data['friendlist']
+            return JsonResponse(friendlist)
+        else:
+            return "", 400
 
     # Follow a friend
     elif request.method == 'POST':
         to_email = request.form.get('email')
-        status = 1
+        relation = 1
 
-        relation_service.add_follow(current_user.get_user_id(request), to_email, status)
-
-        return JsonResponse({'status': 'success'}), 201
+        response = relation_service.add_follow(current_user.get_user_id(request), to_email, relation)
+        status = response['status']
+        if status:
+            return JsonResponse({'status': 'success'}), 201
+        else:
+            return "", 400
 
     # Delete a friend
     elif request.method == 'DELETE':
         email = request.args.get('email')
-        relation_service.delete_follow(current_user.get_user_id(request), email)
-        return JsonResponse({'status': 'success'}), 201
+        response = relation_service.delete_follow(current_user.get_user_id(request), email)
+        status = response['status']
+        if status:
+            return JsonResponse({'status': 'success'}), 201
+        else:
+            return "", 400
     else:
         return "", 400
 
@@ -159,7 +200,10 @@ def get_map(request):
         rule = request.form.get('rule')
         if not rule: rule = 'default' # Set default rule
         data = Map_App.get_map_attractions(current_user.get_user_id(request), rule)
-        return JsonResponse(data)
+        if data['status']:
+            return JsonResponse(data)
+        else:
+            return "", 400
     else:
         return "", 400
 
@@ -187,12 +231,14 @@ def create_a_new_place_post(request):
 
         user_id = current_user.get_user_id(request)
         
-        attraction_service.post_attraction(
+        response = attraction_service.post_moment(
             name, lat, lng, intro, rating, cover_file, marker_file,
             user_id
         )
-
-        return JsonResponse({'status': 'success'}), 201
+        if response['status']:
+            return JsonResponse({'status': 'success'}), 201
+        else:
+            return "", 400
 
     else:
         return '', 404
@@ -208,11 +254,23 @@ def get_list_of_places_near_a_coordinate(request):
     if request.method == 'GET':
         lat = request.args.get('lat')
         lng = request.args.get('lng')
-        place_list = Map_App.gps_to_place_list(lat, lng)
-        if place_list != "_new":
-            return JsonResponse(place_list)
+        data = location_service.find_nearby_attractions(lat, lng)
+        if data['status']:
+            JsonResponse(data['place_list'])
         else:
             return "", 400
+
+
+# # Return the places nearby to the front end for selection
+# def get_list_of_places_near_a_coordinate(request):
+#     if request.method == 'GET':
+#         lat = request.args.get('lat')
+#         lng = request.args.get('lng')
+#         place_list = Map_App.gps_to_place_list(lat, lng)
+#         if place_list != "_new":
+#             return JsonResponse(place_list)
+#         else:
+#             return "", 400
 
 """
 #  ________________________________________
