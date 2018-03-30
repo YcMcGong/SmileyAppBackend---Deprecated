@@ -1,5 +1,5 @@
-import db_api
-from db_api import user_db, attraction_db, review_db
+import db_api.db_api
+from db_api.db_api import user_db, attraction_db, review_db
 import utility
 from utility import *
 from random import *
@@ -45,8 +45,8 @@ assert user2.discovered_list == []
 assert user2.status == 'updated'
 
 #testing attraction creation
-f1 = open('thumbnail_IMG_3956.jpg', 'rb')
-f2 = open('Background-40@3x.png','rb')
+f1 = open('test_resource/test_cover.jpg', 'rb')
+f2 = open('test_resource/test_marker.png','rb')
 lat = str(uniform(-50,50))
 lng = str(uniform(-150,150))
 #lat = '37.6573504'

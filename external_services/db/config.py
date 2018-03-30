@@ -5,4 +5,3 @@ boundary = 0.001 #for nearby attractions
 
 
 DB_ENDPOINT = 'http://0.0.0.0:5000'
-
