@@ -538,12 +538,14 @@ def get_review_by_attraction_ID_and_review_ID():
         attraction_ID = request.args.get('attraction_ID')
         review_ID = request.args.get('review_ID')
         review_table = dynamodb.Table('Reviews')
+        
         response = review_table.get_item(
             Key = {
                 'attraction_ID': attraction_ID,
                 'review_ID': review_ID
             }
         )
+        print(response)
         if 'Item' in response.keys():
             return response['Item']
         return jsonify({'errorMessage': 'review not exist'})
