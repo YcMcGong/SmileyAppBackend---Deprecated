@@ -11,6 +11,9 @@ class Map():
         self.relation_service.test()
 
     def get_map_attractions(self, user_id, rule):
+        """
+        rui starts
+        """
         pass
 
     def gps_to_place_list(self, lat, lng):
