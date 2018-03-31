@@ -1,0 +1,15 @@
+
+# Service to WebApp communication should follow the following interface protocol.
+
+service -> application
+1. Service returns dictionary.
+
+2. Return format:
+
+all communication include:
+{
+    'return': Boolean, (True if sucess)
+    'status': String, ('Passing error information through here')
+}
+
+3. All services need to specify the data return format in its own documentation folder.

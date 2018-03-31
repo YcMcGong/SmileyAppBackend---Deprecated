@@ -1,0 +1,64 @@
+"""
+#
+# The return dictionary format for relation service
+#
+"""
+
+1) Show a list of friends given a list of user_ID
+
+    def show_all_friends(self, [usr_ID]):
+
+    [in] user_ID_list: [user_ID1, user_ID2 ...]
+
+    function:
+
+        Show a list of friends given a list of user_ID
+
+    return:
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+            'friendList':
+                {
+                    # hash(user_ID)
+                    # Note: in python, do list(dict) can create a list for fast processing
+                    user_ID1: 
+                        {
+                            user_ID2: {relation: int, time: datetime (ex. 2018-03-29 18:17:28)}
+                            user_ID3: {relation: int, time: datetime}
+                            user_ID4: {relation: int, time: datetime}
+                        }
+
+                    user_ID2:
+                        {
+                            user_ID3: {relation: int, time: datetime}
+                            user_ID4: {relation: int, time: datetime}
+                        }
+                    ...
+                }
+        }
+
+2) add friend
+
+    def add_follow(self, user_id, to_exp_ID, status):
+
+    return:
+
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+        }
+
+3) delete friend
+
+    def delete_follow(self, user_id, to_exp_ID):
+
+    return:
+
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+        }

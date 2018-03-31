@@ -1,0 +1,45 @@
+
+
+
+DB -- service
+1.
+all functions return true or false
+
+2. 
+all channels include a statue and auto-assign
+
+3.
+not assigned value is None
+
+4.
+all communications use jsonify dictionary
+
+
+service -- application
+1. 
+all returns are dictionaries
+
+2.
+all communication include:
+{
+    'status': boolean
+    'errorMessage': string    if status is False 
+}
+
+
+
+
+general principle
+1. 
+all service or application process and return list of attractionID,
+then feed this list in attraction service to retrive details list
+
+
+
+
+
+
+
+
+
+ https://earnbitcoin.pro/ref/052d1873

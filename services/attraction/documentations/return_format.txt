@@ -1,0 +1,146 @@
+"""
+#
+# The return dictionary format for attraction service
+#
+"""
+
+1) Post attraction
+
+    def post_moment(self, name, lat, lng, 
+            intro, rating, cover_file, user_ID, 
+            isProtected = False, attraction_ID = None)
+
+    function:
+
+        if attraction_ID given, create a review.
+        if attraction_ID not given, create an attraction
+
+    return:
+        {
+            'return': Boolean, (True if sucess)
+            'status': String, ('attraction' if created an attraction, 'review' if created a review)
+            'errorMessage': String, (None if no error)
+            'attraction_ID': String, (None if not sucess or posted a review)
+            'review_ID': String, (None if not sucess or posted an attraction)
+        }
+
+2) Get list of visited attractions by user_IDs
+   
+   def attraction_get_list(self, user_list):
+
+   [in] user_list: [user_ID1, user_ID2, user_ID3 ...]
+   
+    function:
+
+        Get visited attractions (with ranking info) given the a list of user_ID
+
+    return:
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+            'attractionList': list
+                [
+                    {
+                        'attraction_ID': String
+                        'time': datetime (ex. 2018-03-29 18:17:28)
+                        'discover_ID': user_ID
+                        'lat': String,
+                        'lng': String
+                    },
+
+                    {
+                        'attraction_ID': String
+                        'time': datetime (ex. 2018-03-29 18:17:28)
+                        'discover_ID': user_ID
+                        'lat': String,
+                        'lng': String
+                    }
+                    ...
+                ]
+            
+        }
+
+3) Get required data to render a Map
+
+    def attraction_map_render(self, attraction_list):
+    [in] attraction_list: [attraction_ID1, attraction_ID2, attraction_ID3]
+
+    function:
+        given a list of attraction_ID, return necessary data to render a Map
+
+    return:
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+            'attractionMapData': list
+                [
+                    {
+                        'attraction_ID': String,
+                        'marker': String(url),
+                        'lat': String,
+                        'lng': String,
+                        'attractionName': String, (attraction's name)
+                        'discoverName': String, (discover's name)
+                    },
+
+                    {
+                        'attraction_ID': String,
+                        'marker': String(url),
+                        'lat': String,
+                        'lng': String,
+                        'attractionName': String, (attraction's name)
+                        'discoverName': String, (discover's name)
+                    }
+                    ...
+                ]
+            
+        }
+
+4) Get the necessary data to render an attraction detail view
+
+    def attraction_detail_render(self, attraction_ID):
+        [in] attraction_ID: String
+
+    function:
+        given an attraction_ID, retrieve the detail info of an attraction, and a list of reviews
+
+    return:
+
+        {
+            'return': Boolean, (True if sucess)
+            'status': String,
+            'errorMessage': String, (None if no error)
+            'info':
+                {
+                    'attraction_ID':
+                    'attractionName':
+                    'explorerName':
+                    'exp_ID': the exp_id of the exploer, not user_ID
+                    'address': String
+                    'cover': String(url)
+                }
+            'reviews': list
+                [
+                    {
+                        'attraction_ID': String
+                        'time': datetime (ex. 2018-03-29 18:17:28)
+                        'resource': String(url) # currently is cover file url
+                        'intro': String(or None)
+                        'discoverName': userName
+                        'discover_ID': user_ID
+                    },
+
+                    {
+                        'attraction_ID': String
+                        'time': datetime (ex. 2018-03-29 18:17:28)
+                        'resource': String(url) # currently is cover file url
+                        'intro': String(or None)
+                        'discoverName': userName
+                        'discover_ID': user_ID
+                    },
+                    ...
+                ]
+            
+        }
