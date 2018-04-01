@@ -1,0 +1,49 @@
+"""
+#
+# The return dictionary format for login service
+#
+"""
+
+1. Authenticate
+
+    def authenticate(self, email, password, exp_ID = None):
+
+    authenticate user based on exp_ID or email <-> password pair
+
+    return:
+        {
+            'result': Boolean,
+            'status': String,
+            'user_ID': String, (returns the user uuid)
+        }
+
+2. Create user
+
+    def create_user(self, name, email, experience, exp_id, password):
+
+    return:
+    {
+        'result': Boolean,
+        'status': String,
+        'user_ID': String, (returns the user uuid)
+    }     
+
+
+3. Get profile
+
+    def get_profile(self, user_id):
+
+    return:
+
+    {
+        'result': Boolean,
+        'status': String,
+        'user_ID': String, (returns the user uuid)
+        'profile':
+            {
+                'exp_id': String,
+                'experience': String,
+                'email': String,
+                'name': String
+            }
+    }
