@@ -11,7 +11,7 @@ all channels include a statue and auto-assign
 not assigned value is None
 
 4.
-all communications use jsonify dictionars containing only strings 
+all communications use json.dumps dictionars containing only strings 
 '''
 
 
@@ -46,11 +46,65 @@ app = Flask(__name__)
 
 
 
+# writing part
+def write_user(discovered_list, email, exp_ID, experience, explored_list, friends, name, recently_visited, user_ID):
+    table = dynamodb.Table('smiley_user')
+    table.put_item(
+        Item = {
+            'discoveredList': discovered_list,
+            'email': email,
+            'exp_ID': exp_ID,
+            'experience': experience,
+            'friends': friends,
+            'name': name,
+            'recentlyVisited': recently_visited,
+            'user_ID': user_ID,
+            'exploredList': explored_list
+        }
+    )
+
+def write_attraction(address, attraction_ID, cover, creation_time, explorer_ID, isProtected, intro, lat, lng, marker, name, rating, review_list, review_number, update_time):
+    table = dynamodb.Table('Attractions')
+    table.put_item(
+        Item = {
+            'address': address,
+            'attraction_ID': attraction_ID,
+            'cover': cover,
+            'creationTime': creation_time,
+            'explorer_ID': explorer_ID,
+            'intro': intro,
+            'lat': lat,
+            'lng': lng,
+            'marker': marker,
+            'name': name,
+            'rating': rating,
+            'review_list': review_list,
+            'reviewNumber': review_number,
+            'updateTime': update_time,
+        }
+    )
+
+def write_review(attraction_ID, resource, creation_time, intro, rating, review_ID, reviewer_ID):
+    table = dynamodb.Table('Reviews')
+    table.put_item(
+        Item = {
+            'attraction_ID': attraction_ID,
+            'resource': resource,
+            'creationTime': creation_time,
+            'intro': intro,
+            'rating': rating,
+            'review_ID': review_ID,
+            'reviewer_ID': reviewer_ID
+        }
+    )
+
+
+
 
 # Routing from here
 @app.route('/', methods=['GET', 'POST'])
 def test():
-    return jsonify({'one':1, 'two':2})
+    return json.dumps({'one':1, 'two':2})
 
 @app.route('/user_autheticate', methods = ['GET', 'POST'])
 def user_autheticate():
@@ -64,7 +118,7 @@ def user_autheticate():
             }
         )
         if not 'Item' in email_response.keys():
-           return jsonify({'errorMessage': 'email not found'})
+           return json.dumps({'errorMessage': 'email not found'})
         user_ID = email_response['Item']['user_ID']
         login_table = dynamodb.Table('Users')
         login_response = login_table.get_item(
@@ -74,9 +128,9 @@ def user_autheticate():
         )
         item = login_response['Item']
         if password != item['password']:
-            return jsonify({'errorMessage': 'wrong password'})
-        return jsonify({'user_ID': item['user_ID']})
-    return jsonify({'errorMessage': 'not using get method'})
+            return json.dumps({'errorMessage': 'wrong password'})
+        return json.dumps({'user_ID': item['user_ID']})
+    return json.dumps({'errorMessage': 'not using get method'})
 
 @app.route('/get_user', methods = ['GET', 'POST'])
 def get_user():
@@ -88,8 +142,8 @@ def get_user():
                 'user_ID': user_ID
             }
         )
-        return jsonify(user_response['Item'])
-    return jsonify({'errorMessage': 'not using get method'})
+        return json.dumps(user_response['Item'])
+    return json.dumps({'errorMessage': 'not using get method'})
 
 
 @app.route('/get_user_ID', methods = ['GET', 'POST'])
@@ -103,11 +157,11 @@ def get_user_ID():
             }
         )
         if not 'Item' in email_response.keys():
-            return jsonify({'errorMessage': 'email does not exist'})
+            return json.dumps({'errorMessage': 'email does not exist'})
         item = email_response['Item']
         user_ID = item['user_ID']
-        return jsonify({'user_ID': user_ID})
-    return jsonify({'errorMessage': 'not using get method'})
+        return json.dumps({'user_ID': user_ID})
+    return json.dumps({'errorMessage': 'not using get method'})
 
 # assume valid input when creating new user
 @app.route('/create_user', methods = ['GET', 'POST']) 
@@ -137,15 +191,60 @@ def create_user():
         user_table = dynamodb.Table('smiley_user')
         item = {
             'user_ID': user_ID,
-            'discovered_list': [],
-            'explored_list': [],
+            'discoveredList': [],
+            'exploredList': [],
             'friends': [
                 {
                     'user_ID': user_ID,
                     'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime())
                 }
             ],   
-            'recently_visited': [],
+            'recentlyVisited': [],
+            'name': name,
+            'exp_ID': exp_ID,
+            'experience': experience,
+            'email': email,
+            'password': password,
+        }
+        write_user(discovered_list = [], email = email, exp_ID = exp_ID, experience = experience, explored_list = [], friends = [], name = name, recently_visited = [], user_ID = user_ID)
+        return json.dumps(item)
+    return json.dumps({'errorMessage': 'not using post method'})
+
+@app.route('/update_user', methods = ['GET', 'POST']) 
+def update_user():
+    if request.method == 'POST':
+        discovered_list = json.loads(request.form.get('discovered_list'))
+        email = request.form.get('email')
+        exp_ID = request.form.get('exp_ID')
+        experience = request.form.get('exp_ID')
+        explored_list = json.loads(request.form.get('explored_list'))
+        friends = json.loads(request.form.get('friends'))
+        name = request.form.get('name')
+        password = request.form.get('password')
+        recently_visited = json.loads(request.form.get('recently_visited'))
+        user_ID = request.form.get('user_ID')
+        email_table = dynamodb.Table('Emails')
+        email_table.put_item(
+            Item = {
+                'email': email,
+                'user_ID': user_ID,
+            }
+        )
+        login_table = dynamodb.Table('Users')
+        login_table.put_item(
+            Item = {
+                'user_ID': user_ID,
+                'password': password,
+                'email': email,
+            }
+        )
+        user_table = dynamodb.Table('smiley_user')
+        item = {
+            'user_ID': user_ID,
+            'discovered_list': discovered_list,
+            'explored_list': explored_list,
+            'friends': friends,   
+            'recently_visited': recently_visited,
             'name': name,
             'exp_ID': exp_ID,
             'experience': experience,
@@ -155,8 +254,30 @@ def create_user():
         user_table.put_item(
             Item = item
         )
-        return jsonify(item)
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps(item)
+    return json.dumps({'errorMessage': 'not using post method'})
+
+
+
+@app.route('/get_user_list', methods = ['GET', 'POST']) 
+def get_user_list():
+    if request.method == 'GET':
+        user_ID_list = json.loads(request.args.get('user_ID_list'))
+        user_table = dynamodb.Table('smiley_user')
+        ans = {}
+        for user_ID in user_ID_list:
+            response = user_table.get_item(
+                Key = {
+                    'user_ID': user_ID
+                }
+            )
+            if 'Item' in response.keys():
+                ans[str(response['Item']['user_ID'])] = response['Item']
+            else:
+                return json.dumps({'errorMessage': 'user get error'})
+        return json.dumps({'status': 'success', 'user_list': ans, 'return': True})
+
+ 
 
 # delete user through user_ID assuming valid input
 @app.route('/delete_user', methods = ['GET', 'POST']) 
@@ -189,8 +310,8 @@ def delete_user():
                 'user_ID': user_ID
             }
         )
-        return jsonify({'status': 'success'})
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps({'status': 'success'})
+    return json.dumps({'errorMessage': 'not using post method'})
         
 @app.route('/add_friend', methods = ['GET', 'POST']) 
 def add_friend():
@@ -229,8 +350,8 @@ def add_friend():
         smiley_user_table.put_item(
             Item = to_user
         )
-        return jsonify({'status': 'success'})
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps({'status': 'success'})
+    return json.dumps({'errorMessage': 'not using post method'})
 
 @app.route('/delete_friend', methods = ['GET', 'POST']) 
 def delete_friend():
@@ -266,8 +387,8 @@ def delete_friend():
         smiley_user_table.put_item(
             Item = to_user
         )
-        return jsonify({'status': 'success'})
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps({'status': 'success'})
+    return json.dumps({'errorMessage': 'not using post method'})
 
 @app.route('/get_attraction_by_ID', methods = ['GET', 'POST'])
 def get_attraction_by_ID():
@@ -279,7 +400,7 @@ def get_attraction_by_ID():
                 'attraction_ID': attraction_ID
             }
         )
-        return jsonify(response['Item'])
+        return json.dumps(response['Item'])
 '''
 @app.route('/get_multiple_attraction_list', methods = ['GET', 'POST'])
 def get_multiple_attraction_list():
@@ -300,7 +421,7 @@ def get_multiple_attraction_list():
             
             ans = ans + user_response['Item']['discovered_list'] + user_response['Item']['explore_list']
         print(ans)
-        return jsonify(ans)
+        return json.dumps(ans)
 '''
 
 @app.route('/get_attraction_by_coordinate', methods = ['GET', 'POST'])
@@ -318,7 +439,7 @@ def get_attraction_by_coordinate():
         )
         
         if not 'Item' in response.keys():
-            return jsonify({'errorMessage': 'attraction not found'})
+            return json.dumps({'errorMessage': 'attraction not found'})
         attraction_ID_list = response['Item']['attraction_ID_list']
         attraction_table = dynamodb.Table('Attractions')
         for attraction_ID in attraction_ID_list:
@@ -330,9 +451,9 @@ def get_attraction_by_coordinate():
             if 'Item' in response.keys():
                 attraction = response['Item']
                 if attraction['lat'] == lat and attraction['lng'] == lng:
-                    return jsonify(response['Item'])
-        return jsonify({'errorMessage': 'attraction not found'})
-    return jsonify({'errorMessage': 'not using get method'})
+                    return json.dumps(response['Item'])
+        return json.dumps({'errorMessage': 'attraction not found'})
+    return json.dumps({'errorMessage': 'not using get method'})
 
 '''
 @app.route('/get_nearby_attractions_by_coordinate', methods = ['GET', 'POST'])  # this method returns a list of attractions
@@ -374,15 +495,37 @@ def get_attraction_by_address():
                 'attraction_ID': attraction_ID
             }
         )
-        return jsonify(response['Item'])
+        return json.dumps(response['Item'])
 '''
+
+@app.route('/get_attraction_list', methods = ['GET','POST'])
+def get_attraction_list():
+    if request.method == 'GET':
+        attraction_ID_list = json.loads(request.args.get('attraction_ID_list'))
+        attraction_table = dynamodb.Table('Attractions')
+        ans = {}
+        for attraction_ID in attraction_ID_list:
+            response = attraction_table.get_item(
+                Key = {
+                    'attraction_ID': attraction
+                }
+            )
+            if 'Item' in response.keys():
+                ans[str(response['Item']['attraction_ID'])] = response['Item']
+            else:
+                return json.dumps({'errorMessage': 'user get error'})
+        return json.dumps({
+            'status': 'success', 
+            'attraction_list': ans, 
+            'return': True
+            })
 
 
 @app.route('/post_attraction', methods = ['GET', 'POST'])
 def post_attraction():
     if request.method == 'POST':
         # Read data
-        explorer_ID = request.form.get('explorer_ID')
+        user_ID = request.form.get('explorer_ID')
         name = request.form.get('name')
         lat = request.form.get('lat')
         lng = request.form.get('lng')
@@ -392,6 +535,7 @@ def post_attraction():
         marker_file = request.files.get('marker')
         if_custom = request.form.get('ifCustom')
         attraction_ID = generate_unique_ID()
+        review_ID = generate_unique_ID()
         cover = upload_file_to_s3(cover_file)
         marker = upload_file_to_s3(marker_file)
         address = gps_to_address(lat = float(lat), lng = float(lng))
@@ -400,7 +544,7 @@ def post_attraction():
             'address': address,
             'attraction_ID': attraction_ID,
             'reviewNumber': "1",    #number of reviews
-            'explorer_ID': explorer_ID,
+            'explorer_ID': user_ID,
             'name': name,
             'lat': lat,
             'lng': lng,
@@ -409,9 +553,10 @@ def post_attraction():
             'ifCustom': if_custom,
             'cover': cover,
             'marker': marker,
-            'discoverer': [explorer_ID],
+            'discoverer': [user_ID],
             'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
             'updateTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+            'review_list': [{'review_ID': review_ID, 'user_ID': user_ID, 'time': strftime('%Y-%m-%d %H:%M:%S', gmtime())}],
         }
         attraction_table.put_item(
             Item = attraction
@@ -420,8 +565,8 @@ def post_attraction():
         review_table.put_item(
             Item = {
                 'attraction_ID': attraction_ID,
-                'review_ID': "0",
-                'reviewer_ID': explorer_ID,
+                'review_ID': review_ID,
+                'reviewer_ID': user_ID,
                 'intro': intro,
                 'rating': rating,
                 'cover': cover,    
@@ -445,9 +590,7 @@ def post_attraction():
         attraction_ID_list = []
         if 'Item' in attraction_ID_list_response.keys():
             attraction_ID_list = attraction_ID_list_response['Item']['attraction_ID_list']
-            print(attraction_ID_list)
-            print([attraction_ID])
-            attraction_ID_list = attraction_ID_list + [attraction_ID]
+            attraction_ID_list = attraction_ID_list.append(attraction_ID)
         else:
             attraction_ID_list = [attraction_ID]
         attraction_location_table.put_item(
@@ -456,8 +599,8 @@ def post_attraction():
                 'attraction_ID_list': attraction_ID_list
             }
         )
-        return jsonify(attraction)
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps(attraction)
+    return json.dumps({'errorMessage': 'not using post method'})
 
 
 @app.route('/post_review', methods = ['GET', 'POST'])
@@ -476,10 +619,11 @@ def post_review():
             }
         )
         attraction = response['Item']
+        review_ID = generate_unique_ID()
         review_number = int(attraction['reviewNumber']) 
         review = {
             'attraction_ID': attraction_ID,
-            'review_ID': str(review_number),
+            'review_ID': review_ID,
             'reviewer_ID': user_ID,
             'intro': intro,
             'rating': rating,
@@ -494,16 +638,22 @@ def post_review():
             Key = {
                 'attraction_ID': attraction_ID
             },
-            UpdateExpression = "set reviewNumber = :n, update_time = :t",
+            UpdateExpression = "set reviewNumber = :n, update_time = :t, discoverer = list_append(:vals, discoverer), review_list = list_append(:vals2 ,review_list) ",
             ExpressionAttributeValues = {
                 ':n': str(review_number + 1),
-                ':t': strftime('%Y-%m-%d %H:%M:%S', gmtime())
+                ':t': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                ':vals': [user_ID],
+                ':vals2':[{
+                    'review_ID': review_ID,
+                    'time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                    'user_ID': user_ID
+                }]
             },
             
             ReturnValues = "UPDATED_NEW"
         )
-        return jsonify(review)
-    return jsonify({'errorMessage': 'not using post method'})
+        return json.dumps(review)
+    return json.dumps({'errorMessage': 'not using post method'})
 
 @app.route('/get_review_by_attraction_ID', methods = ['GET', 'POST'])
 def get_review_by_attraction_ID():
@@ -527,29 +677,51 @@ def get_review_by_attraction_ID():
                 }
             )
             if 'Item' in review_response.keys():
-                print(review_response['Item'])
                 ans.append(review_response['Item'])
-        return jsonify({'attraction_ID': attraction_ID, 'review_list': ans})
-    return jsonify({'errorMessage': 'not using get method'})
+        return json.dumps({'attraction_ID': attraction_ID, 'review_list': ans})
+    return json.dumps({'errorMessage': 'not using get method'})
 
-@app.route('/get_review_by_attraction_ID_and_review_ID', methods = ['GET', 'POST'])
-def get_review_by_attraction_ID_and_review_ID():
+@app.route('/get_review', methods = ['GET', 'POST'])
+def get_review():
     if request.method == 'GET':
-        attraction_ID = request.args.get('attraction_ID')
+        print('enter route')
         review_ID = request.args.get('review_ID')
         review_table = dynamodb.Table('Reviews')
         
         response = review_table.get_item(
             Key = {
-                'attraction_ID': attraction_ID,
                 'review_ID': review_ID
             }
         )
         print(response)
         if 'Item' in response.keys():
-            return response['Item']
-        return jsonify({'errorMessage': 'review not exist'})
-    return jsonify({'errorMessage': 'not using get method'})
+            return json.dumps(response['Item'])
+        return json.dumps({'errorMessage': 'review not exist'})
+    return json.dumps({'errorMessage': 'not using get method'})
+
+
+@app.route('/get_review_list', methods = ['GET','POST'])
+def get_review_list():
+    if request.method == 'GET':
+        review_ID_list = json.loads(request.args.get('review_ID_list'))
+        review_table = dynamodb.Table('Reviews')
+        ans = {}
+        for attraction_ID in attraction_ID_list:
+            response = attraction_table.get_item(
+                Key = {
+                    'review_ID': attraction
+                }
+            )
+            if 'Item' in response.keys():
+                ans[str(response['Item']['attraction_ID'])] = response['Item']
+            else:
+                return json.dumps({'errorMessage': 'user get error'})
+        return json.dumps({
+            'status': 'success', 
+            'attraction_list': ans, 
+            'return': True
+            })
+
 
 
 
