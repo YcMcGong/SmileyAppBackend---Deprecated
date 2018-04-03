@@ -1,5 +1,5 @@
 import db_api.db_api
-from db_api.db_api import user_db, attraction_db, review_db
+from db_api.db_api import *
 import utility
 from utility import *
 from random import *
@@ -17,32 +17,58 @@ assert user0.discovered_list == []
 assert user0.status == 'updated'
 assert user0.user_ID != None
 user_0_user_ID = user0.user_ID
+user_ID = user_0_user_ID
 
-#testing user get by ID
 user1 = user_db()
-user1.get(user_ID = user_0_user_ID)
-user_ID = user1.user_ID
-assert user1.email == 'email_user_0'
-assert user1.name == 'name_user_0'
-assert user1.password == 'password_user_0'
-assert user1.exp_ID == 'user_exp_ID_0'
-assert user1.experience == '0'
+user1.post(email = 'email_user_1', name = 'name_user_1', experience = '1', exp_ID = 'user_exp_ID_1', password = 'password_user_1')
+assert user1.email == 'email_user_1'
+assert user1.name == 'name_user_1'
+assert user1.password == 'password_user_1'
+assert user1.exp_ID == 'user_exp_ID_1'
+assert user1.experience == '1'
 assert user1.explored_list == []
 assert user1.discovered_list == []
 assert user1.status == 'updated'
+assert user1.user_ID != None
+user_1_user_ID = user1.user_ID
+user_ID = user_0_user_ID
+
+#testing user list create
+user_list_0 = get_user_list_db([user_ID, user_1_user_ID])
+
+
+
+#testing user update
+user1.update(email = 'email_user_1_update')
+assert user1.email == 'email_user_1_update'
+user1.update(name = 'nameupdate')
+assert user1.name == 'nameupdate'
+
+
+#testing user get by ID
+user0_check = user_db()
+user0_check.get(user_ID = user_0_user_ID)
+assert user0_check.email == 'email_user_0'
+assert user0_check.name == 'name_user_0'
+assert user0_check.exp_ID == 'user_exp_ID_0'
+assert user0_check.experience == '0'
+print(user0_check.explored_list)
+assert user0_check.explored_list == []
+assert user0_check.discovered_list == []
+assert user0_check.status == 'updated'
 
 #testing user login
-user2 = user_db()
-user2.get(email = 'email_user_0', password = 'password_user_0')
-assert user2.email == 'email_user_0'
-assert user2.user_ID == user_ID
-assert user2.name == 'name_user_0'
-assert user2.password == 'password_user_0'
-assert user2.exp_ID == 'user_exp_ID_0'
-assert user2.experience == '0'
-assert user2.explored_list == []
-assert user2.discovered_list == []
-assert user2.status == 'updated'
+user0_check2 = user_db()
+user0_check2.get(email = 'email_user_0', password = 'password_user_0')
+assert user0_check2.email == 'email_user_0'
+assert user0_check2.user_ID == user_ID
+assert user0_check2.name == 'name_user_0'
+assert user0_check2.password == 'password_user_0'
+assert user0_check2.exp_ID == 'user_exp_ID_0'
+assert user0_check2.experience == '0'
+assert user0_check2.explored_list == []
+assert user0_check2.discovered_list == []
+assert user0_check2.status == 'updated'
 
 #testing attraction creation
 f1 = open('test_resource/test_cover.jpg', 'rb')
@@ -61,6 +87,8 @@ assert attraction0.lat == lat
 assert attraction0.intro == 'attraction_intro'
 assert attraction0.cover != None
 assert attraction0.marker != None
+print(user_ID)
+print(attraction0.explorer_ID)
 assert attraction0.explorer_ID == user_ID
 assert attraction0.if_custom == 'False'
 assert attraction0.address == address
@@ -104,24 +132,34 @@ assert attraction2.discoverer == [user_ID]
 assert attraction2.creation_time != None
 assert attraction2.update_time != None
 assert attraction1.attraction_ID == attraction_ID
+review_ID = attraction2.review_list[0]['review_ID']
+attraction_review = review_db()
+attraction_review.get(review_ID = review_ID)
+assert attraction_review.intro == 'attraction_intro'
+assert attraction_review.rating == '0'
+assert attraction_review.cover != None
+assert attraction_review.reviewer_ID == user_ID
+assert attraction_review.attraction_ID == attraction_ID
+assert attraction_review.review_ID == review_ID
+
 
 #testing review creation
 review0 = review_db()
-review0.post(intro = 'review_intro', rating = 'review_rating', cover_file = f1, user_ID = user_ID, attraction_ID = attraction_ID, review_ID = None)
+review0.post(intro = 'review_intro', rating = 'review_rating', cover_file = f1, reviewer_ID = user_ID, attraction_ID = attraction_ID, review_ID = None)
+review0_ID = review0.review_ID
 assert review0.intro == 'review_intro'
 assert review0.rating == 'review_rating'
 assert review0.cover != None
-assert review0.user_ID == user_ID
+assert review0.reviewer_ID == user_ID
 assert review0.attraction_ID == attraction_ID
-assert review0.review_ID == '1'
+
 
 #testing review get by attraction_ID and review_ID
 review1 = review_db()
-review1.get(attraction_ID = attraction_ID, review_ID = '1')
-print(review1.intro)
+review1.get(review_ID = review_ID)
 assert review1.intro == 'review_intro'
 assert review1.rating == 'review_rating'
 assert review1.cover != None
-assert review1.user_ID == user_ID
+assert review1.reviewer_ID == user_ID
 assert review1.attraction_ID == attraction_ID
-assert review1.review_ID == '1'
+assert review1.review_ID == review0_ID
