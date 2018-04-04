@@ -1,0 +1,38 @@
+"""
+#
+# The return dictionary format for location service
+#
+"""
+
+1) find nearest attractions
+
+    def find_nearby_attractions(self, lat, lng):
+
+    return:
+
+        {
+            'result': Boolean,
+            'status': String,
+            'errorMessage': String,
+            'nearbyPlacesList': List
+                
+                [
+                    {
+                        'name': String,
+                        'attraction_ID': String or None (None for new attraction),
+                        'lat': String,
+                        'lng': String,
+                        'isProtected': Boolean
+                    },
+
+                    {
+                        'name': String,
+                        'attraction_ID': String or None (None for new attraction),
+                        'lat': String,
+                        'lng': String,
+                        'isProtected': Boolean
+                    },
+
+                    ...
+                ]
+        }

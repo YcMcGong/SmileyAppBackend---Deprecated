@@ -1,4 +1,6 @@
 
+The following instruction is for setting up the django server on a VM.
+
 # Make migrations
 python manage.py makemigrations
 
