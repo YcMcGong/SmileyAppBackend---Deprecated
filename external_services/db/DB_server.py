@@ -47,7 +47,10 @@ app = Flask(__name__)
 
 
 # writing part
-def write_user(discovered_list, email, exp_ID, experience, explored_list, friends, name, recently_visited, user_ID):
+def write_user(
+    discovered_list,email, exp_ID, experience, 
+    explored_list, friends, name, recently_visited, 
+    user_ID):
     table = dynamodb.Table('smiley_user')
     table.put_item(
         Item = {
@@ -62,15 +65,19 @@ def write_user(discovered_list, email, exp_ID, experience, explored_list, friend
             'exploredList': explored_list
         }
     )
+    return True
 
-def write_attraction(address, attraction_ID, cover, creation_time, explorer_ID, isProtected, intro, lat, lng, marker, name, rating, review_list, review_number, update_time):
+def write_attraction(address, attraction_ID, 
+    cover, explorer_ID, is_protected, intro, 
+    lat, lng, marker, name, rating, review_list, 
+    update_time):
     table = dynamodb.Table('Attractions')
     table.put_item(
         Item = {
             'address': address,
             'attraction_ID': attraction_ID,
             'cover': cover,
-            'creationTime': creation_time,
+            'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
             'explorer_ID': explorer_ID,
             'intro': intro,
             'lat': lat,
@@ -79,23 +86,118 @@ def write_attraction(address, attraction_ID, cover, creation_time, explorer_ID, 
             'name': name,
             'rating': rating,
             'review_list': review_list,
-            'reviewNumber': review_number,
             'updateTime': update_time,
+            'isProtected': is_protected
         }
     )
+    return True
 
-def write_review(attraction_ID, resource, creation_time, intro, rating, review_ID, reviewer_ID):
+def write_review(attraction_ID, resource,
+    intro, rating, review_ID, reviewer_ID):
     table = dynamodb.Table('Reviews')
     table.put_item(
         Item = {
             'attraction_ID': attraction_ID,
             'resource': resource,
-            'creationTime': creation_time,
+            'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
             'intro': intro,
             'rating': rating,
             'review_ID': review_ID,
             'reviewer_ID': reviewer_ID
         }
+    )
+    return True
+
+def write_address(attraction_ID, address):
+    table = dynamodb.Table('Addresses')
+    table.put_item(
+        Item = {
+            'address': address,
+            'attraction_ID': attraction_ID
+        }
+    )
+    return True
+
+def write_attraction_location(attraction_ID, lat, lng):
+    table = dynamodb.Table('Attraction_locations')
+    partition_key = compute_partition_key(lat = float(lat), lng = float(lng))
+    try:
+        table.update_item(
+            Key = {
+                'partitionKey': partition_key
+            },
+            UpdateExpression = "set attraction_ID_list = list_append(:attraction_ID, attraction_ID_list)",
+            ExpressionAttributeValues = {
+                ':attraction_ID': attraction_ID
+            },
+            ReturnValues = "UPDATED_NEW"
+        )
+    except:
+        table.put_item(
+            Item = {
+                'partitionKey': partition_key,
+                'attraction_ID_list': [attraction_ID]
+            }
+        )
+    return True
+
+def write_email(email, user_ID, password):
+    table = dynamodb.Table('Emails')
+    response = table.get_item(
+        Key = {
+            'email': email
+        }
+    )
+    if 'Item' in response.keys():
+        return False
+    else:
+        table.put_item(
+            Item = {
+                'email': email,
+                'user_ID': user_ID,
+                'password': password
+            }
+        )
+        return True
+
+def write_friends(user_ID_1, user_ID_2, relation = '0'):
+    table = dynamodb.Table('smiley_user')
+    table.update_item(
+        Key = {
+            'user_ID': user_ID_1
+        },
+        UpdateExpression = "set friends = list_append(:friend, friends)",
+        ExpressionAttributeValues = {
+            ':friend': {
+                'user_ID': user_ID2,
+                'relation': relation,
+                'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime())
+            }
+        },
+        ReturnValues = 'UPDATED_NEW'
+    )
+
+
+#########
+#update section
+#########
+
+def update_attraction_by_review(attraction_ID, review_ID, user_ID):
+    table = dynamodb.Table('Attractions')
+    table.update_item(
+        Key = {
+            'attraction_ID': attraction_ID
+        },
+        UpdateExpression = "set update_time = :t, review_list = list_append(:vals ,review_list) ",
+        ExpressionAttributeValues = {
+            ':t': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+            ':vals':[{
+                'review_ID': review_ID,
+                'time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
+                'user_ID': user_ID
+            }]   
+        },
+        ReturnValues = "UPDATED_NEW"
     )
 
 
@@ -173,43 +275,15 @@ def create_user():
         exp_ID = request.form.get('exp_ID')
         experience =request.form.get('experience')
         user_ID = generate_unique_ID()
-        email_table = dynamodb.Table('Emails')
-        email_table.put_item(
-            Item = {
-                'email': email,
-                'user_ID': user_ID,
-            }
-        )
-        login_table = dynamodb.Table('Users')
-        login_table.put_item(
-            Item = {
-                'user_ID': user_ID,
-                'password': password,
-                'email': email,
-            }
-        )
+        write_email(email = email, password = password, user_ID = user_ID)
         user_table = dynamodb.Table('smiley_user')
         item = {
             'user_ID': user_ID,
-            'discoveredList': [],
-            'exploredList': [],
-            'friends': [
-                {
-                    'user_ID': user_ID,
-                    'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime())
-                }
-            ],   
-            'recentlyVisited': [],
-            'name': name,
-            'exp_ID': exp_ID,
-            'experience': experience,
-            'email': email,
-            'password': password,
         }
         write_user(discovered_list = [], email = email, exp_ID = exp_ID, experience = experience, explored_list = [], friends = [], name = name, recently_visited = [], user_ID = user_ID)
         return json.dumps(item)
     return json.dumps({'errorMessage': 'not using post method'})
-
+'''
 @app.route('/update_user', methods = ['GET', 'POST']) 
 def update_user():
     if request.method == 'POST':
@@ -257,7 +331,7 @@ def update_user():
         return json.dumps(item)
     return json.dumps({'errorMessage': 'not using post method'})
 
-
+'''
 
 @app.route('/get_user_list', methods = ['GET', 'POST']) 
 def get_user_list():
@@ -318,39 +392,12 @@ def add_friend():
     if request.method == 'POST':
         from_user_ID = request.form.get('from_user_ID')
         to_user_ID = request.form.get('to_user_ID')
+        relation = request.form.get('relation')
         current_time = strftime('%Y-%m-%d %H:%M:%S', gmtime())
-        smiley_user_table = dynamodb.Table('smiley_user')
-        from_user_response = smiley_user_table.get_item(
-            Key = {
-                'user_ID': from_user_ID
-            }
-        )
-        from_user = from_user_response['Item']
-        from_user['friends'].append(
-            {
-                'user_ID': to_user_ID,
-                'creationTime': current_time
-            }
-        )
-        to_user_response = smiley_user_table.get_item(
-            Key = {
-                'user_ID': to_user_ID
-            }
-        )
-        to_user = to_user_response['Item']
-        to_user['friends'].append(
-            {
-                'user_ID': from_user_ID,
-                'creationTime': current_time
-            }
-        ) 
-        smiley_user_table.put_item(
-            Item = from_user
-        )
-        smiley_user_table.put_item(
-            Item = to_user
-        )
-        return json.dumps({'status': 'success'})
+        write_friends(user_ID_1 = from_user_ID, user_ID_2 = to_user_ID, relation = relation)
+        write_friends(user_ID_1 = to_user_ID, user_ID_2 = from_user_ID, relation = relation)
+        return json.dumps({'status', 'success'})
+
     return json.dumps({'errorMessage': 'not using post method'})
 
 @app.route('/delete_friend', methods = ['GET', 'POST']) 
@@ -533,73 +580,42 @@ def post_attraction():
         rating = request.form.get('rating')
         cover_file = request.files.get('cover')
         marker_file = request.files.get('marker')
-        if_custom = request.form.get('ifCustom')
+        is_protected = request.form.get('isProtected')
         attraction_ID = generate_unique_ID()
         review_ID = generate_unique_ID()
         cover = upload_file_to_s3(cover_file)
         marker = upload_file_to_s3(marker_file)
         address = gps_to_address(lat = float(lat), lng = float(lng))
-        attraction_table = dynamodb.Table('Attractions')
-        attraction = {
-            'address': address,
-            'attraction_ID': attraction_ID,
-            'reviewNumber': "1",    #number of reviews
-            'explorer_ID': user_ID,
-            'name': name,
-            'lat': lat,
-            'lng': lng,
-            'intro': intro,
-            'rating': rating,
-            'ifCustom': if_custom,
-            'cover': cover,
-            'marker': marker,
-            'discoverer': [user_ID],
-            'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-            'updateTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-            'review_list': [{'review_ID': review_ID, 'user_ID': user_ID, 'time': strftime('%Y-%m-%d %H:%M:%S', gmtime())}],
-        }
-        attraction_table.put_item(
-            Item = attraction
+        current_time = strftime('%Y-%m-%d %H:%M:%S', gmtime())
+        write_attraction(
+            address = address, 
+            attraction_ID = attraction_ID, 
+            cover = cover, 
+            explorer_ID = user_ID, 
+            is_protected = is_protected, 
+            intro = intro, 
+            lat = lat, 
+            lng = lng, 
+            marker = marker, 
+            name = name, 
+            rating = rating, 
+            review_list = [{'review_ID': review_ID, 'user_ID': user_ID, 'time': current_time}], 
+            update_time = current_time
         )
-        review_table = dynamodb.Table('Reviews')
-        review_table.put_item(
-            Item = {
-                'attraction_ID': attraction_ID,
-                'review_ID': review_ID,
-                'reviewer_ID': user_ID,
-                'intro': intro,
-                'rating': rating,
-                'cover': cover,    
-                'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-            }
-        ) 
-        address_table = dynamodb.Table('Addresses')
-        address_table.put_item(
-            Item = {
-                'address': address,
-                'attraction_ID': attraction_ID
-            }
+        write_review(
+            attraction_ID = attraction_ID,
+            resource = cover,
+            intro = intro, 
+            rating = rating, 
+            review_ID = review_ID, 
+            reviewer_ID = user_ID
         )
-        partition_key = compute_partition_key(lat = float(lat), lng = float(lng))
-        attraction_location_table = dynamodb.Table('Attraction_locations')
-        attraction_ID_list_response = attraction_location_table.get_item(
-            Key = {
-                'partitionKey': partition_key
-            }
-        )
-        attraction_ID_list = []
-        if 'Item' in attraction_ID_list_response.keys():
-            attraction_ID_list = attraction_ID_list_response['Item']['attraction_ID_list']
-            attraction_ID_list = attraction_ID_list.append(attraction_ID)
-        else:
-            attraction_ID_list = [attraction_ID]
-        attraction_location_table.put_item(
-            Item = {
-                'partitionKey': compute_partition_key(lat = lat, lng = lng),
-                'attraction_ID_list': attraction_ID_list
-            }
-        )
-        return json.dumps(attraction)
+        write_address(address = address, attraction_ID = attraction_ID)
+        write_attraction_location(attraction_ID = attraction_ID, lat = lat, lng = lng)
+
+
+        
+        return json.dumps({'status': 'success', 'attraction_ID': attraction_ID})
     return json.dumps({'errorMessage': 'not using post method'})
 
 
@@ -609,52 +625,22 @@ def post_review():
         attraction_ID = request.form.get('attraction_ID')
         intro = request.form.get('intro')
         rating = request.form.get('rating')
-        cover_file = request.files.get('cover')
+        resource_file = request.files.get('resource')
         user_ID = request.form.get('user_ID')
-        cover = upload_file_to_s3(cover_file)
-        attraction_table = dynamodb.Table('Attractions')
-        response = attraction_table.get_item(
-            Key = {
-                'attraction_ID': attraction_ID
-            }
-        )
-        attraction = response['Item']
+        resource = upload_file_to_s3(resource_file)
         review_ID = generate_unique_ID()
-        review_number = int(attraction['reviewNumber']) 
-        review = {
-            'attraction_ID': attraction_ID,
-            'review_ID': review_ID,
-            'reviewer_ID': user_ID,
-            'intro': intro,
-            'rating': rating,
-            'cover': cover,
-            'creationTime': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-        }
-        review_table = dynamodb.Table('Reviews')
-        review_table.put_item(
-            Item = review
-        )
-        response = attraction_table.update_item(
-            Key = {
-                'attraction_ID': attraction_ID
-            },
-            UpdateExpression = "set reviewNumber = :n, update_time = :t, discoverer = list_append(:vals, discoverer), review_list = list_append(:vals2 ,review_list) ",
-            ExpressionAttributeValues = {
-                ':n': str(review_number + 1),
-                ':t': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-                ':vals': [user_ID],
-                ':vals2':[{
-                    'review_ID': review_ID,
-                    'time': strftime('%Y-%m-%d %H:%M:%S', gmtime()),
-                    'user_ID': user_ID
-                }]
-            },
-            
-            ReturnValues = "UPDATED_NEW"
-        )
-        return json.dumps(review)
+        write_review(
+            attraction_ID = attraction_ID,
+            resource = resource,
+            intro = intro, 
+            rating = rating, 
+            review_ID = review_ID, 
+            reviewer_ID = user_ID
+        ) 
+        update_attraction_by_review(review_ID = review_ID, attraction_ID = attraction_ID, user_ID = user_ID)
+        return json.dumps({'status': 'success', 'review_ID': review_ID})
     return json.dumps({'errorMessage': 'not using post method'})
-
+'''
 @app.route('/get_review_by_attraction_ID', methods = ['GET', 'POST'])
 def get_review_by_attraction_ID():
     if request.method == 'GET':
@@ -666,7 +652,6 @@ def get_review_by_attraction_ID():
             }
         )
         attraction = attraction_response['Item']
-        review_number = int(attraction['review_number'])
         review_table = dynamodb.Table('Reviews')
         ans = []
         for i in range(review_number):
@@ -680,11 +665,10 @@ def get_review_by_attraction_ID():
                 ans.append(review_response['Item'])
         return json.dumps({'attraction_ID': attraction_ID, 'review_list': ans})
     return json.dumps({'errorMessage': 'not using get method'})
-
+'''
 @app.route('/get_review', methods = ['GET', 'POST'])
 def get_review():
     if request.method == 'GET':
-        print('enter route')
         review_ID = request.args.get('review_ID')
         review_table = dynamodb.Table('Reviews')
         
@@ -693,7 +677,6 @@ def get_review():
                 'review_ID': review_ID
             }
         )
-        print(response)
         if 'Item' in response.keys():
             return json.dumps(response['Item'])
         return json.dumps({'errorMessage': 'review not exist'})
